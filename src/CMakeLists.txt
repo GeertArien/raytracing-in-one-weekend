@@ -1,0 +1,5 @@
+fips_begin_app(raytracer cmdline)
+    fips_vs_warning_level(3)
+    fips_files(main.c)
+    fips_deps(m)
+fips_end_app()
