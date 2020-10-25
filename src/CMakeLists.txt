@@ -1,5 +1,7 @@
 fips_begin_app(raytracer cmdline)
     fips_vs_warning_level(3)
     fips_files(main.c)
-    fips_deps(m)
+    if (FIPS_LINUX)
+        fips_deps(m)
+    endif()
 fips_end_app()
