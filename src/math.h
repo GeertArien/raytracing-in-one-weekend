@@ -35,3 +35,30 @@ hmm_v3 random_v3_in_unit_sphere() {
         return p;
     }
 }
+
+hmm_v3 random_unit_vector() {
+    return HMM_NormalizeVec3(random_v3_in_unit_sphere()); 
+}
+
+hmm_v3 random_in_hemisphere(const hmm_v3* normal) {
+    const hmm_v3 in_unit_sphere = random_v3_in_unit_sphere();
+    if (HMM_DotVec3(in_unit_sphere, *normal) > 0.f) { 
+        // In the same hemisphere as the normal
+        return in_unit_sphere;
+    }
+    else {
+        return HMM_Vec3(-in_unit_sphere.X, -in_unit_sphere.Y, -in_unit_sphere.Z);
+    }
+}
+
+hmm_v3 reflect_v3(const hmm_v3* d, const hmm_v3* n) {
+    const float dot = HMM_DotVec3(*d, *n);
+    const hmm_v3 projected = HMM_MultiplyVec3f(*n, 2.f * dot);
+    return HMM_SubtractVec3(*d, projected);
+}
+
+bool near_zero_v3(const hmm_v3* vec) {
+    // Return true if the vector is close to zero in all dimensions.
+    const float s = 1e-8;
+    return (HMM_ABS(vec->X) < s) && (HMM_ABS(vec->Y) < s) && (HMM_ABS(vec->Z) < s);
+}

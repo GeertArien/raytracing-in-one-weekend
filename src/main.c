@@ -8,7 +8,7 @@
 
 struct {
     camera cam;
-    sphere spheres[2];
+    sphere spheres[4];
     unsigned int spheres_length;
 } state;
 
@@ -35,15 +35,15 @@ color ray_color(const ray* r, int depth) {
 
     hit_record hit_r;
 
-    if (hit_spheres(r, 0.f, INFINITY, &hit_r)) {
-        const point3 target = HMM_AddVec3(HMM_AddVec3(hit_r.point, hit_r.normal), random_v3_in_unit_sphere());
+    if (hit_spheres(r, 0.0001f, INFINITY, &hit_r)) {
+        ray scattered;
+        color attenuation;
+        
+        if (scatter_ray(&hit_r.material, r, &hit_r, &attenuation, &scattered)) {
+            return HMM_MultiplyVec3(attenuation, ray_color(&scattered, depth - 1));
+        }
 
-        const ray next_r = {
-            .origin = hit_r.point,
-            .direction = HMM_SubtractVec3(target, hit_r.point)
-        };
-
-        return HMM_MultiplyVec3f(ray_color(&next_r, depth - 1), .5f);
+        return HMM_Vec3(0.f, 0.f, 0.f);
     }
 
     hmm_v3 unit_direction = HMM_NormalizeVec3(r->direction);
@@ -54,10 +54,17 @@ color ray_color(const ray* r, int depth) {
 }
 
 void write_color(FILE* stream, color pixel_color) {
+    // gamma-correct for gamma=2.0
+    const color corrected = HMM_Vec3(
+        HMM_SquareRootF(pixel_color.R), 
+        HMM_SquareRootF(pixel_color.G),
+        HMM_SquareRootF(pixel_color.B)
+    );
+
     // Write the translated [0,255] value of each color component.
-    const int ir = (int)(256.f * HMM_Clamp(pixel_color.X, 0.f, 0.999f));
-    const int ig = (int)(256.f * HMM_Clamp(pixel_color.Y, 0.f, 0.999f));
-    const int ib = (int)(256.f * HMM_Clamp(pixel_color.Z, 0.f, 0.999f));
+    const int ir = (int)(256.f * HMM_Clamp(0.f, corrected.R, 0.999f));
+    const int ig = (int)(256.f * HMM_Clamp(0.f, corrected.G, 0.999f));
+    const int ib = (int)(256.f * HMM_Clamp(0.f, corrected.B, 0.999f));
 
     fprintf(stream, "%i %i %i\n", ir, ig, ib);
 }
@@ -75,18 +82,44 @@ int main() {
 
     // Scene
     state.spheres[0] = (sphere) {
-        .center = HMM_Vec3(0.f, 0.f, -1.f),
-        .radius = 0.5f,
-        .color = HMM_Vec3(1.f, 0.f, 0.f)
+        .center = HMM_Vec3(0.f, -100.5f, -1.f),
+        .radius = 100.f,
+        .material = {
+            .albedo = HMM_Vec3(0.8f, 0.8f, 0.f),
+            .reflect = false
+        }
     };
 
     state.spheres[1] = (sphere) {
-        .center = HMM_Vec3(0.f, -100.5f, -1.f),
-        .radius = 100.f,
-        .color = HMM_Vec3(1.f, 0.f, 0.f)
+        .center = HMM_Vec3(0.f, 0.f, -1.f),
+        .radius = 0.5f,
+        .material = {
+            .albedo = HMM_Vec3(0.7f, 0.3f, 0.3f),
+            .reflect = false
+        }
     };
 
-    state.spheres_length = 2;
+    state.spheres[2] = (sphere) {
+        .center = HMM_Vec3(-1.f, 0.f, -1.f),
+        .radius = 0.5f,
+        .material = {
+            .albedo = HMM_Vec3(0.8f, 0.8f, 0.8f),
+            .reflect = true,
+            .fuzz = 0.3
+        }
+    };
+
+    state.spheres[3] = (sphere) {
+        .center = HMM_Vec3(1.f, 0.f, -1.f),
+        .radius = 0.5f,
+        .material = {
+            .albedo = HMM_Vec3(0.8f, 0.6f, 0.2f),
+            .reflect = true,
+            .fuzz = 1.0
+        }
+    };
+
+    state.spheres_length = 4;
 
     // Render
     printf("P3\n");

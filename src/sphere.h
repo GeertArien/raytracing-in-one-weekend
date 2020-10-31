@@ -3,23 +3,57 @@
 #include "math.h"
 #include "ray.h"
 
+typedef struct material {
+    color albedo;
+    bool reflect;
+    float fuzz;
+} material;
+
 typedef struct sphere {
     point3 center;
     float radius;
-    color color;
+    material material;
 } sphere;
 
 typedef struct hit_record {
     point3 point;
     hmm_v3 normal;
     float t;
+    material material;
     bool front_face;
 } hit_record;
+
+bool scatter_ray(const material* mat, const ray* r_in, const hit_record* rec, color* attenuation, ray* scattered) {
+
+    if (mat->reflect) {
+        const hmm_v3 dir_n = HMM_NormalizeVec3(r_in->direction); 
+        const hmm_v3 reflected = reflect_v3(&dir_n, &rec->normal);
+        scattered->origin = rec->point;
+        const hmm_v3 fuzz_vec = HMM_MultiplyVec3f(random_v3_in_unit_sphere(), mat->fuzz);
+        scattered->direction = HMM_AddVec3(reflected, fuzz_vec);
+        *attenuation = mat->albedo;
+        return (HMM_DotVec3(scattered->direction, rec->normal) > 0.f);
+    }
+
+    hmm_v3 scatter_direction = HMM_AddVec3(rec->normal, random_unit_vector());
+    //hmm_v3 scatter_direction = random_in_hemisphere(&rec->normal);
+
+     // Catch degenerate scatter direction
+    if (near_zero_v3(&scatter_direction)) {
+        scatter_direction = rec->normal;
+    }
+
+    scattered->origin = rec->point;
+    scattered->direction = scatter_direction;
+    *attenuation = mat->albedo;
+    return true;
+}
 
 void fill_hit_record(hit_record* rec, const float t, const ray* r, const sphere* s) {
     rec->t = t;
     rec->point = ray_at(r, rec->t);
     rec->normal = HMM_DivideVec3f(HMM_SubtractVec3(rec->point, s->center), s->radius);
+    rec->material = s->material;
     rec->front_face = HMM_DotVec3(r->direction, rec->normal) < 0.f;
 
     if (!rec->front_face) {
