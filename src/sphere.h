@@ -42,10 +42,23 @@ bool scatter_ray(const material* mat, const ray* r_in, const hit_record* rec, co
         float refraction_ratio = rec->front_face ? (1.f / mat->ir) : mat->ir;
 
         const hmm_v3 dir_n = HMM_NormalizeVec3(r_in->direction); 
-        const hmm_v3 refracted = refract_v3(&dir_n, &rec->normal, refraction_ratio);
+
+        float cos_theta = HMM_DotVec3(HMM_Vec3(-dir_n.X, -dir_n.Y, -dir_n.Z), rec->normal);
+        cos_theta = HMM_MIN(cos_theta, 1.f);
+        const float sin_theta = HMM_SquareRootF(1.f - cos_theta * cos_theta);
+
+        const bool cannot_refract = refraction_ratio * sin_theta > 1.f;
+        hmm_v3 direction;
+
+        if (cannot_refract || reflectance(cos_theta, refraction_ratio) > random_float()) {
+            direction = reflect_v3(&dir_n, &rec->normal);
+        }
+        else {
+            direction = refract_v3(&dir_n, &rec->normal, refraction_ratio);
+        }
 
         scattered->origin = rec->point;
-        scattered->direction = refracted;
+        scattered->direction = direction;
         return true;
     }
 

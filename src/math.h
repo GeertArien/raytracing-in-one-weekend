@@ -68,8 +68,15 @@ hmm_v3 refract_v3(const hmm_v3* d, const hmm_v3* n, float etai_over_etat) {
     return HMM_AddVec3(r_out_perp, r_out_parallel);
 }
 
+float reflectance(float cosine, float ref_idx) {
+    // Use Schlick's approximation for reflectance.
+    float r0 = (1.f - ref_idx) / (1.f + ref_idx);
+    r0 = r0 * r0;
+    return r0 + (1.f - r0) * HMM_PowerF((1.f - cosine), 5.f);
+}
+
 bool near_zero_v3(const hmm_v3* vec) {
     // Return true if the vector is close to zero in all dimensions.
-    const float s = 1e-8;
+    const float s = 1e-8f;
     return (HMM_ABS(vec->X) < s) && (HMM_ABS(vec->Y) < s) && (HMM_ABS(vec->Z) < s);
 }

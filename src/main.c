@@ -94,9 +94,9 @@ int main() {
         .center = HMM_Vec3(0.f, 0.f, -1.f),
         .radius = 0.5f,
         .material = {
-            .albedo = HMM_Vec3(0.7f, 0.3f, 0.3f),
+            .albedo = HMM_Vec3(0.1f, 0.2f, 0.5f),
             .reflect = false,
-            .dielectric = true,
+            .dielectric = false,
             .ir = 1.5f
         }
     };
@@ -119,7 +119,7 @@ int main() {
         .material = {
             .albedo = HMM_Vec3(0.8f, 0.6f, 0.2f),
             .reflect = true,
-            .fuzz = 1.0
+            .fuzz = 0.f
         }
     };
 
