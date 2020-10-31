@@ -57,6 +57,17 @@ hmm_v3 reflect_v3(const hmm_v3* d, const hmm_v3* n) {
     return HMM_SubtractVec3(*d, projected);
 }
 
+hmm_v3 refract_v3(const hmm_v3* d, const hmm_v3* n, float etai_over_etat) {
+    float cos_theta = HMM_DotVec3(HMM_Vec3(-d->X, -d->Y, -d->Z), *n);
+    cos_theta = HMM_MIN(cos_theta, 1.f);
+    hmm_v3 r_out_perp = HMM_MultiplyVec3f(*n, cos_theta);
+    r_out_perp = HMM_AddVec3(*d, r_out_perp);
+    r_out_perp =  HMM_MultiplyVec3f(r_out_perp, etai_over_etat);
+    const float y = -HMM_SquareRootF(HMM_ABS(1.f - HMM_LengthSquaredVec3(r_out_perp)));
+    const hmm_v3 r_out_parallel = HMM_MultiplyVec3f(*n, y);
+    return HMM_AddVec3(r_out_perp, r_out_parallel);
+}
+
 bool near_zero_v3(const hmm_v3* vec) {
     // Return true if the vector is close to zero in all dimensions.
     const float s = 1e-8;

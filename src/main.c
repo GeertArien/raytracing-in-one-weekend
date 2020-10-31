@@ -95,7 +95,9 @@ int main() {
         .radius = 0.5f,
         .material = {
             .albedo = HMM_Vec3(0.7f, 0.3f, 0.3f),
-            .reflect = false
+            .reflect = false,
+            .dielectric = true,
+            .ir = 1.5f
         }
     };
 
@@ -104,8 +106,10 @@ int main() {
         .radius = 0.5f,
         .material = {
             .albedo = HMM_Vec3(0.8f, 0.8f, 0.8f),
-            .reflect = true,
-            .fuzz = 0.3
+            .reflect = false,
+            .dielectric = true,
+            .ir = 1.5f,
+            .fuzz = 0.3f
         }
     };
 

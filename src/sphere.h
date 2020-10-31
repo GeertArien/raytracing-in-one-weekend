@@ -6,7 +6,9 @@
 typedef struct material {
     color albedo;
     bool reflect;
+    bool dielectric;
     float fuzz;
+    float ir;
 } material;
 
 typedef struct sphere {
@@ -33,6 +35,18 @@ bool scatter_ray(const material* mat, const ray* r_in, const hit_record* rec, co
         scattered->direction = HMM_AddVec3(reflected, fuzz_vec);
         *attenuation = mat->albedo;
         return (HMM_DotVec3(scattered->direction, rec->normal) > 0.f);
+    }
+
+    if (mat->dielectric) {
+        *attenuation = HMM_Vec3(1.f, 1.f, 1.f);
+        float refraction_ratio = rec->front_face ? (1.f / mat->ir) : mat->ir;
+
+        const hmm_v3 dir_n = HMM_NormalizeVec3(r_in->direction); 
+        const hmm_v3 refracted = refract_v3(&dir_n, &rec->normal, refraction_ratio);
+
+        scattered->origin = rec->point;
+        scattered->direction = refracted;
+        return true;
     }
 
     hmm_v3 scatter_direction = HMM_AddVec3(rec->normal, random_unit_vector());
