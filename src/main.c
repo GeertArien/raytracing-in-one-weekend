@@ -8,7 +8,7 @@
 
 struct {
     camera cam;
-    sphere spheres[4];
+    sphere spheres[10];
     unsigned int spheres_length;
 } state;
 
@@ -78,7 +78,12 @@ int main() {
     const int samples_per_pixel = 100;
     const int max_depth = 50;
 
-    state.cam = create_camera(aspect_ratio);
+    const hmm_v3 position = HMM_Vec3(-2.f, 2.f, 1.f);
+    const hmm_v3 lookat = HMM_Vec3(0.f, 0.f, -1.f);
+    const hmm_v3 vup = HMM_Vec3(0.f, 1.f, 0.f);
+
+    state.cam = create_camera(&position, &lookat, &vup, 20.f, aspect_ratio);
+
 
     // Scene
     state.spheres[0] = (sphere) {
@@ -86,7 +91,8 @@ int main() {
         .radius = 100.f,
         .material = {
             .albedo = HMM_Vec3(0.8f, 0.8f, 0.f),
-            .reflect = false
+            .reflect = false,
+            .dielectric = false
         }
     };
 
@@ -114,6 +120,18 @@ int main() {
     };
 
     state.spheres[3] = (sphere) {
+        .center = HMM_Vec3(-1.f, 0.f, -1.f),
+        .radius = -0.45f,
+        .material = {
+            .albedo = HMM_Vec3(0.8f, 0.8f, 0.8f),
+            .reflect = false,
+            .dielectric = true,
+            .ir = 1.5f,
+            .fuzz = 0.3f
+        }
+    };
+
+    state.spheres[4] = (sphere) {
         .center = HMM_Vec3(1.f, 0.f, -1.f),
         .radius = 0.5f,
         .material = {
@@ -123,7 +141,7 @@ int main() {
         }
     };
 
-    state.spheres_length = 4;
+    state.spheres_length = 5;
 
     // Render
     printf("P3\n");
