@@ -51,6 +51,14 @@ hmm_v3 random_in_hemisphere(const hmm_v3* normal) {
     }
 }
 
+hmm_v3 random_in_unit_disk() {
+    while (true) {
+        const hmm_v3 p = HMM_Vec3(random_float_interval(-1.f, 1.f), random_float_interval(-1.f, 1.f), 0.f);
+        if (HMM_LengthSquaredVec3(p) >= 1.f) continue;
+        return p;
+    }
+}
+
 hmm_v3 reflect_v3(const hmm_v3* d, const hmm_v3* n) {
     const float dot = HMM_DotVec3(*d, *n);
     const hmm_v3 projected = HMM_MultiplyVec3f(*n, 2.f * dot);

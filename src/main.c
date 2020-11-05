@@ -78,11 +78,14 @@ int main() {
     const int samples_per_pixel = 100;
     const int max_depth = 50;
 
-    const hmm_v3 position = HMM_Vec3(-2.f, 2.f, 1.f);
+    const hmm_v3 position = HMM_Vec3(3.f, 3.f, 2.f);
     const hmm_v3 lookat = HMM_Vec3(0.f, 0.f, -1.f);
     const hmm_v3 vup = HMM_Vec3(0.f, 1.f, 0.f);
 
-    state.cam = create_camera(&position, &lookat, &vup, 20.f, aspect_ratio);
+    const float dist_to_focus = HMM_LengthVec3(HMM_SubtractVec3(position, lookat));
+    const float aperture = 2.f;
+
+    state.cam = create_camera(&position, &lookat, &vup, 20.f, aspect_ratio, aperture, dist_to_focus);
 
 
     // Scene
