@@ -1,14 +1,16 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include "math.h"
 #include "sphere.h"
 #include "ray.h"
 #include "camera.h"
+#include "color.h"
+
+#define MAX_SPHERES 2000
 
 struct {
     camera cam;
-    sphere spheres[10];
+    sphere spheres[MAX_SPHERES];
     unsigned int spheres_length;
 } state;
 
@@ -35,7 +37,7 @@ color ray_color(const ray* r, int depth) {
 
     hit_record hit_r;
 
-    if (hit_spheres(r, 0.0001f, INFINITY, &hit_r)) {
+    if (hit_spheres(r, 0.001f, INFINITY, &hit_r)) {
         ray scattered;
         color attenuation;
         
@@ -53,98 +55,79 @@ color ray_color(const ray* r, int depth) {
     return HMM_AddVec3(color0, color1);
 }
 
-void write_color(FILE* stream, color pixel_color) {
-    // gamma-correct for gamma=2.0
-    const color corrected = HMM_Vec3(
-        HMM_SquareRootF(pixel_color.R), 
-        HMM_SquareRootF(pixel_color.G),
-        HMM_SquareRootF(pixel_color.B)
-    );
 
-    // Write the translated [0,255] value of each color component.
-    const int ir = (int)(256.f * HMM_Clamp(0.f, corrected.R, 0.999f));
-    const int ig = (int)(256.f * HMM_Clamp(0.f, corrected.G, 0.999f));
-    const int ib = (int)(256.f * HMM_Clamp(0.f, corrected.B, 0.999f));
 
-    fprintf(stream, "%i %i %i\n", ir, ig, ib);
+void add_sphere(const point3 center, const float radius, const material mat) {
+    if (state.spheres_length >= MAX_SPHERES) {
+        return;
+    }
+
+    state.spheres[state.spheres_length] = (sphere) {
+        .center = center,
+        .radius = radius,
+        .material = mat
+    };
+
+    ++state.spheres_length;
+}
+
+void generate_random_scene() {
+
+    const material ground_material = mat_lambertian(HMM_Vec3(0.5f, 0.5f, 0.5f));
+    add_sphere(HMM_Vec3(0.f,-1000.f,0.f), 1000.f, ground_material);
+
+    for (int a = -11; a < 11; a++) {
+        for (int b = -11; b < 11; b++) {
+            const float choose_mat = random_float();
+            const point3 center = HMM_Vec3(a + 0.9f * random_float(), 0.2f, b + 0.9f * random_float());
+            const hmm_v3 distance = HMM_SubtractVec3(center, HMM_Vec3(4.f, 0.2f, 0.f));
+
+
+            if (HMM_LengthVec3(distance) > 0.9f) {
+
+                if (choose_mat < 0.8f) {
+                    // diffuse
+                    const color albedo = HMM_MultiplyVec3(random_v3(), random_v3());
+                    add_sphere(center, 0.2f, mat_lambertian(albedo));
+                } 
+                else if (choose_mat < 0.95f) {
+                    // metal
+                    const color albedo = random_v3_interval(0.5f, 1.f);
+                    const float fuzz = random_float_interval(0.f, 0.5f);
+                    add_sphere(center, 0.2f, mat_metal(albedo, fuzz));
+                } 
+                else {
+                    // glass
+                    add_sphere(center, 0.2f, mat_dielectric(1.5f));
+                }
+            }
+        }
+    }
+
+    add_sphere(HMM_Vec3(0.f, 1.f, 0.f), 1.0f, mat_dielectric(1.5f));
+    add_sphere(HMM_Vec3(-4.f, 1.f, 0.f), 1.0f, mat_lambertian(HMM_Vec3(.4f, .2f, .1f)));
+    add_sphere(HMM_Vec3(4.f, 1.f, 0.f), 1.0f, mat_metal(HMM_Vec3(.7f, .6f, .5f), 0.f));
 }
 
 int main() {
 
     // Image
-    const float aspect_ratio = 16.f / 9.f;
-    const int image_width = 400;
+    const float aspect_ratio = 3.f / 2.f;
+    const int image_width = 1200;
     const int image_height = (int)(image_width / aspect_ratio);
-    const int samples_per_pixel = 100;
+    const int samples_per_pixel = 500;
     const int max_depth = 50;
 
-    const hmm_v3 position = HMM_Vec3(3.f, 3.f, 2.f);
-    const hmm_v3 lookat = HMM_Vec3(0.f, 0.f, -1.f);
+    const hmm_v3 position = HMM_Vec3(13.f, 2.f, 3.f);
+    const hmm_v3 lookat = HMM_Vec3(0.f, 0.f, 0.f);
     const hmm_v3 vup = HMM_Vec3(0.f, 1.f, 0.f);
 
-    const float dist_to_focus = HMM_LengthVec3(HMM_SubtractVec3(position, lookat));
-    const float aperture = 2.f;
+    const float dist_to_focus = 10.f;
+    const float aperture = 0.1f;
 
     state.cam = create_camera(&position, &lookat, &vup, 20.f, aspect_ratio, aperture, dist_to_focus);
 
-
-    // Scene
-    state.spheres[0] = (sphere) {
-        .center = HMM_Vec3(0.f, -100.5f, -1.f),
-        .radius = 100.f,
-        .material = {
-            .albedo = HMM_Vec3(0.8f, 0.8f, 0.f),
-            .reflect = false,
-            .dielectric = false
-        }
-    };
-
-    state.spheres[1] = (sphere) {
-        .center = HMM_Vec3(0.f, 0.f, -1.f),
-        .radius = 0.5f,
-        .material = {
-            .albedo = HMM_Vec3(0.1f, 0.2f, 0.5f),
-            .reflect = false,
-            .dielectric = false,
-            .ir = 1.5f
-        }
-    };
-
-    state.spheres[2] = (sphere) {
-        .center = HMM_Vec3(-1.f, 0.f, -1.f),
-        .radius = 0.5f,
-        .material = {
-            .albedo = HMM_Vec3(0.8f, 0.8f, 0.8f),
-            .reflect = false,
-            .dielectric = true,
-            .ir = 1.5f,
-            .fuzz = 0.3f
-        }
-    };
-
-    state.spheres[3] = (sphere) {
-        .center = HMM_Vec3(-1.f, 0.f, -1.f),
-        .radius = -0.45f,
-        .material = {
-            .albedo = HMM_Vec3(0.8f, 0.8f, 0.8f),
-            .reflect = false,
-            .dielectric = true,
-            .ir = 1.5f,
-            .fuzz = 0.3f
-        }
-    };
-
-    state.spheres[4] = (sphere) {
-        .center = HMM_Vec3(1.f, 0.f, -1.f),
-        .radius = 0.5f,
-        .material = {
-            .albedo = HMM_Vec3(0.8f, 0.6f, 0.2f),
-            .reflect = true,
-            .fuzz = 0.f
-        }
-    };
-
-    state.spheres_length = 5;
+    generate_random_scene();
 
     // Render
     printf("P3\n");

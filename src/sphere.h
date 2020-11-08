@@ -1,15 +1,8 @@
 #pragma once
 
 #include "math.h"
+#include "material.h"
 #include "ray.h"
-
-typedef struct material {
-    color albedo;
-    bool reflect;
-    bool dielectric;
-    float fuzz;
-    float ir;
-} material;
 
 typedef struct sphere {
     point3 center;
